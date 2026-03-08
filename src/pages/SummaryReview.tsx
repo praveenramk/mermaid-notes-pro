@@ -16,7 +16,6 @@ const SummaryReview = () => {
   const [prompt, setPrompt] = useState("");
   const [promptFocused, setPromptFocused] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
-
   const [editingSummary, setEditingSummary] = useState(false);
   const [editingKeyPoints, setEditingKeyPoints] = useState(false);
   const [editedSummary, setEditedSummary] = useState(contentData?.summary || "");
@@ -49,12 +48,9 @@ const SummaryReview = () => {
           customPrompt: customPrompt || prompt,
         },
       });
-
       if (error) throw error;
-
       const newSummary = data?.summary || contentData.summary;
       const newKeyPoints = data?.keyPoints || contentData.keyPoints;
-
       setContentData({ ...contentData, summary: newSummary, keyPoints: newKeyPoints });
       setEditedSummary(newSummary);
       setEditedKeyPoints(newKeyPoints.map((kp: any) => ({ ...kp })));
@@ -96,7 +92,6 @@ const SummaryReview = () => {
           subOption: "spidermap",
         },
       });
-
       if (error) throw error;
       if (data?.mermaidCode) setMermaidCode(data.mermaidCode);
       navigate("/diagram");
@@ -111,83 +106,6 @@ const SummaryReview = () => {
     navigate("/");
     return null;
   }
-
-  const handleCopy = useCallback(async (text: string, type: "summary" | "keypoints") => {
-    await navigator.clipboard.writeText(text);
-    if (type === "summary") {
-      setCopiedSummary(true);
-      setTimeout(() => setCopiedSummary(false), 2000);
-    } else {
-      setCopiedKeyPoints(true);
-      setTimeout(() => setCopiedKeyPoints(false), 2000);
-    }
-    toast({ title: "Copied to clipboard!" });
-  }, []);
-
-  const handleRegenerate = useCallback(async (customPrompt?: string) => {
-    setIsRegenerating(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-summary", {
-        body: {
-          content: contentData.rawContent,
-          sourceType: contentData.sourceType,
-          customPrompt: customPrompt || prompt,
-        },
-      });
-
-      if (error) throw error;
-
-      const newSummary = data?.summary || contentData.summary;
-      const newKeyPoints = data?.keyPoints || contentData.keyPoints;
-
-      setContentData({ ...contentData, summary: newSummary, keyPoints: newKeyPoints });
-      setEditedSummary(newSummary);
-      setEditedKeyPoints(newKeyPoints.map((kp: any) => ({ ...kp })));
-      toast({ title: "Content regenerated!" });
-    } catch (e) {
-      console.error("Regeneration error:", e);
-      toast({ title: "Regeneration failed", variant: "destructive" });
-    } finally {
-      setIsRegenerating(false);
-    }
-  }, [contentData, prompt, setContentData]);
-
-  const handlePromptSubmit = useCallback(() => {
-    if (!prompt.trim()) return;
-    handleRegenerate(prompt);
-    setPrompt("");
-  }, [prompt, handleRegenerate]);
-
-  const handleSaveSummary = useCallback(() => {
-    setContentData({ ...contentData, summary: editedSummary });
-    setEditingSummary(false);
-  }, [contentData, editedSummary, setContentData]);
-
-  const handleSaveKeyPoints = useCallback(() => {
-    setContentData({ ...contentData, keyPoints: editedKeyPoints });
-    setEditingKeyPoints(false);
-  }, [contentData, editedKeyPoints, setContentData]);
-
-  const handleGenerateMermaid = useCallback(async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-mermaid", {
-        body: {
-          content: contentData.summary,
-          keyPoints: contentData.keyPoints,
-          visualizationType: "mindmap",
-          subOption: "spidermap",
-        },
-      });
-
-      if (error) throw error;
-      if (data?.mermaidCode) setMermaidCode(data.mermaidCode);
-      navigate("/diagram");
-    } catch (e) {
-      console.error("Mermaid generation error:", e);
-      toast({ title: "Failed to generate mermaid code", variant: "destructive" });
-      navigate("/diagram");
-    }
-  }, [contentData, setMermaidCode, navigate]);
 
   const keyPointsText = contentData.keyPoints
     .map((kp) => `${kp.emoji} ${kp.title}: ${kp.description}`)
@@ -227,17 +145,11 @@ const SummaryReview = () => {
             <div className="mb-4 flex items-center justify-between">
               <h3 className="font-display text-lg font-semibold text-foreground">📋 Summary</h3>
               <div className="flex gap-1">
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => handleCopy(contentData.summary, "summary")}
-                  className="h-8 w-8"
-                >
+                <Button size="icon" variant="ghost" onClick={() => handleCopy(contentData.summary, "summary")} className="h-8 w-8">
                   {copiedSummary ? <Check className="h-4 w-4 text-mode" /> : <Copy className="h-4 w-4" />}
                 </Button>
                 <Button
-                  size="icon"
-                  variant="ghost"
+                  size="icon" variant="ghost"
                   onClick={() => {
                     if (editingSummary) handleSaveSummary();
                     else { setEditedSummary(contentData.summary); setEditingSummary(true); }
@@ -246,33 +158,21 @@ const SummaryReview = () => {
                 >
                   <Edit3 className="h-4 w-4" />
                 </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => handleRegenerate()}
-                  disabled={isRegenerating}
-                  className="h-8 w-8"
-                >
+                <Button size="icon" variant="ghost" onClick={() => handleRegenerate()} disabled={isRegenerating} className="h-8 w-8">
                   <RotateCcw className={`h-4 w-4 ${isRegenerating ? "animate-spin" : ""}`} />
                 </Button>
               </div>
             </div>
             {editingSummary ? (
               <div className="space-y-3">
-                <Textarea
-                  value={editedSummary}
-                  onChange={(e) => setEditedSummary(e.target.value)}
-                  className="min-h-[200px] border-mode-border/40 focus-visible:ring-mode"
-                />
+                <Textarea value={editedSummary} onChange={(e) => setEditedSummary(e.target.value)} className="min-h-[200px] border-mode-border/40 focus-visible:ring-mode" />
                 <div className="flex justify-end gap-2">
                   <Button size="sm" variant="outline" onClick={() => setEditingSummary(false)}>Cancel</Button>
                   <Button size="sm" className="bg-mode text-mode-foreground" onClick={handleSaveSummary}>Save</Button>
                 </div>
               </div>
             ) : (
-              <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
-                {contentData.summary}
-              </p>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{contentData.summary}</p>
             )}
           </div>
 
@@ -281,17 +181,11 @@ const SummaryReview = () => {
             <div className="mb-4 flex items-center justify-between">
               <h3 className="font-display text-lg font-semibold text-foreground">🔑 Key Points</h3>
               <div className="flex gap-1">
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => handleCopy(keyPointsText, "keypoints")}
-                  className="h-8 w-8"
-                >
+                <Button size="icon" variant="ghost" onClick={() => handleCopy(keyPointsText, "keypoints")} className="h-8 w-8">
                   {copiedKeyPoints ? <Check className="h-4 w-4 text-mode" /> : <Copy className="h-4 w-4" />}
                 </Button>
                 <Button
-                  size="icon"
-                  variant="ghost"
+                  size="icon" variant="ghost"
                   onClick={() => {
                     if (editingKeyPoints) handleSaveKeyPoints();
                     else { setEditedKeyPoints(contentData.keyPoints.map((kp) => ({ ...kp }))); setEditingKeyPoints(true); }
@@ -308,23 +202,13 @@ const SummaryReview = () => {
                   <div key={kp.id} className="space-y-1.5 rounded-lg border border-border p-3">
                     <Input
                       value={kp.title}
-                      onChange={(e) => {
-                        const updated = [...editedKeyPoints];
-                        updated[i] = { ...updated[i], title: e.target.value };
-                        setEditedKeyPoints(updated);
-                      }}
-                      className="h-8 text-sm font-medium"
-                      placeholder="Title"
+                      onChange={(e) => { const u = [...editedKeyPoints]; u[i] = { ...u[i], title: e.target.value }; setEditedKeyPoints(u); }}
+                      className="h-8 text-sm font-medium" placeholder="Title"
                     />
                     <Input
                       value={kp.description}
-                      onChange={(e) => {
-                        const updated = [...editedKeyPoints];
-                        updated[i] = { ...updated[i], description: e.target.value };
-                        setEditedKeyPoints(updated);
-                      }}
-                      className="h-8 text-sm"
-                      placeholder="Description"
+                      onChange={(e) => { const u = [...editedKeyPoints]; u[i] = { ...u[i], description: e.target.value }; setEditedKeyPoints(u); }}
+                      className="h-8 text-sm" placeholder="Description"
                     />
                   </div>
                 ))}
@@ -337,9 +221,7 @@ const SummaryReview = () => {
               <div className="space-y-3">
                 {contentData.keyPoints.map((kp) => (
                   <div key={kp.id} className="rounded-lg border border-border/50 bg-muted/30 p-3">
-                    <p className="text-sm font-medium text-foreground">
-                      {kp.emoji} {kp.title}
-                    </p>
+                    <p className="text-sm font-medium text-foreground">{kp.emoji} {kp.title}</p>
                     <p className="mt-0.5 text-xs text-muted-foreground">{kp.description}</p>
                   </div>
                 ))}
