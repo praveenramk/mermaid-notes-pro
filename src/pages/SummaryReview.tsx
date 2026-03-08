@@ -26,6 +26,87 @@ const SummaryReview = () => {
   const [copiedSummary, setCopiedSummary] = useState(false);
   const [copiedKeyPoints, setCopiedKeyPoints] = useState(false);
 
+  const handleCopy = useCallback(async (text: string, type: "summary" | "keypoints") => {
+    await navigator.clipboard.writeText(text);
+    if (type === "summary") {
+      setCopiedSummary(true);
+      setTimeout(() => setCopiedSummary(false), 2000);
+    } else {
+      setCopiedKeyPoints(true);
+      setTimeout(() => setCopiedKeyPoints(false), 2000);
+    }
+    toast({ title: "Copied to clipboard!" });
+  }, []);
+
+  const handleRegenerate = useCallback(async (customPrompt?: string) => {
+    if (!contentData) return;
+    setIsRegenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-summary", {
+        body: {
+          content: contentData.rawContent,
+          sourceType: contentData.sourceType,
+          customPrompt: customPrompt || prompt,
+        },
+      });
+
+      if (error) throw error;
+
+      const newSummary = data?.summary || contentData.summary;
+      const newKeyPoints = data?.keyPoints || contentData.keyPoints;
+
+      setContentData({ ...contentData, summary: newSummary, keyPoints: newKeyPoints });
+      setEditedSummary(newSummary);
+      setEditedKeyPoints(newKeyPoints.map((kp: any) => ({ ...kp })));
+      toast({ title: "Content regenerated!" });
+    } catch (e) {
+      console.error("Regeneration error:", e);
+      toast({ title: "Regeneration failed", variant: "destructive" });
+    } finally {
+      setIsRegenerating(false);
+    }
+  }, [contentData, prompt, setContentData]);
+
+  const handlePromptSubmit = useCallback(() => {
+    if (!prompt.trim()) return;
+    handleRegenerate(prompt);
+    setPrompt("");
+  }, [prompt, handleRegenerate]);
+
+  const handleSaveSummary = useCallback(() => {
+    if (!contentData) return;
+    setContentData({ ...contentData, summary: editedSummary });
+    setEditingSummary(false);
+  }, [contentData, editedSummary, setContentData]);
+
+  const handleSaveKeyPoints = useCallback(() => {
+    if (!contentData) return;
+    setContentData({ ...contentData, keyPoints: editedKeyPoints });
+    setEditingKeyPoints(false);
+  }, [contentData, editedKeyPoints, setContentData]);
+
+  const handleGenerateMermaid = useCallback(async () => {
+    if (!contentData) return;
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-mermaid", {
+        body: {
+          content: contentData.summary,
+          keyPoints: contentData.keyPoints,
+          visualizationType: "mindmap",
+          subOption: "spidermap",
+        },
+      });
+
+      if (error) throw error;
+      if (data?.mermaidCode) setMermaidCode(data.mermaidCode);
+      navigate("/diagram");
+    } catch (e) {
+      console.error("Mermaid generation error:", e);
+      toast({ title: "Failed to generate mermaid code", variant: "destructive" });
+      navigate("/diagram");
+    }
+  }, [contentData, setMermaidCode, navigate]);
+
   if (!contentData) {
     navigate("/");
     return null;
