@@ -1,1 +1,7 @@
 project_id = "nttkybntyxvirsquyufk"
+
+[functions.generate-summary]
+verify_jwt = false
+
+[functions.generate-mermaid]
+verify_jwt = false
