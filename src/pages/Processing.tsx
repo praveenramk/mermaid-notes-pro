@@ -45,6 +45,8 @@ const Processing = () => {
           body: {
             content: contentData.rawContent,
             sourceType: contentData.sourceType,
+            sourceName: contentData.sourceName,
+            imageDataUrl: contentData.imageDataUrl,
           },
         });
 

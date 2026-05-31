@@ -522,23 +522,27 @@ serve(async (req) => {
       ? keyPoints.map((kp: any) => `${kp.emoji} ${kp.title}: ${kp.description}`).join("\n")
       : "";
 
-    const systemPrompt = `You are a Mermaid diagram code generator. You MUST follow the exact structural pattern provided below as a template. Replace the placeholder labels with real content derived from the user's summary and key points.
+    const systemPrompt = `You are a Mermaid diagram code generator. You MUST follow the exact structural pattern provided below as a template. Replace placeholder labels with REAL content drawn STRICTLY from the user's summary and key points below.
 
 TEMPLATE PATTERN TO FOLLOW (use this exact structure, only replace labels):
 \`\`\`
 ${template}
 \`\`\`
 
-CRITICAL RULES:
+GROUNDING RULES (CRITICAL):
+- Every node label must come from the user's provided summary or key points.
+- DO NOT invent entities, processes, names, numbers, or relationships not present in the source.
+- If the source has fewer items than the template, REMOVE branches/nodes rather than fabricating filler.
+- If the source has more, you may add nodes following the same pattern, but only using real source content.
+
+CRITICAL OUTPUT RULES:
 - Output ONLY valid Mermaid code, nothing else
 - No markdown code fences in output
 - No explanations, just the mermaid code
-- Follow the EXACT structural pattern from the template above
-- Replace placeholder names (Category 1, Detail 1, etc.) with actual content from the user's data
+- Follow the structural pattern from the template above
 - Keep labels concise (max 5 words per node)
 - Do not use emojis in the mermaid code
-- Do not use special characters that break mermaid syntax (avoid quotes inside labels, use alphanumeric and spaces only)
-- Adapt the number of nodes/branches to fit the content (add or remove branches as needed while keeping the same pattern)`;
+- Do not use special characters that break mermaid syntax (avoid quotes inside labels, use alphanumeric and spaces only)`;
 
     const userContent = `Generate a ${visualizationType}${subOption ? ` (${subOption})` : ""} diagram for this content:
 

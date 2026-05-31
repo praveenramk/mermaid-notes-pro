@@ -5,9 +5,10 @@ import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, Link, Type, FileText, Image, Film, Music, ArrowRight } from "lucide-react";
+import { Upload, Link, Type, FileText, Image, Film, Music, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import type { InputMethod } from "@/types/app";
+import { extractFile } from "@/lib/file-extractor";
 
 const Homepage = () => {
   const { mode, setMode, setContentData } = useApp();
@@ -17,16 +18,42 @@ const Homepage = () => {
   const [textContent, setTextContent] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [extracting, setExtracting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = useCallback(async () => {
     let rawContent = "";
     let sourceName = "";
+    let imageDataUrl: string | undefined;
 
     if (activeInput === "file" && selectedFile) {
-      // For text-based files, read content. For others, we'll pass the file name and handle in processing.
-      rawContent = `[File: ${selectedFile.name}]`;
-      sourceName = selectedFile.name;
+      setExtracting(true);
+      try {
+        const extracted = await extractFile(selectedFile);
+        if (extracted.kind === "unsupported") {
+          toast({ title: "Unsupported file", description: extracted.note ?? "Cannot read this file.", variant: "destructive" });
+          setExtracting(false);
+          return;
+        }
+        if (extracted.kind === "image") {
+          imageDataUrl = extracted.imageDataUrl;
+          rawContent = `[Image file: ${selectedFile.name}]`;
+        } else {
+          rawContent = (extracted.text ?? "").trim();
+          if (!rawContent) {
+            toast({ title: "Empty file", description: "No readable text was found in this file.", variant: "destructive" });
+            setExtracting(false);
+            return;
+          }
+        }
+        sourceName = selectedFile.name;
+      } catch (e) {
+        console.error(e);
+        toast({ title: "File read error", description: e instanceof Error ? e.message : "Failed to read file.", variant: "destructive" });
+        setExtracting(false);
+        return;
+      }
+      setExtracting(false);
     } else if (activeInput === "url" && url.trim()) {
       rawContent = url.trim();
       sourceName = url.trim();
@@ -44,10 +71,12 @@ const Homepage = () => {
       keyPoints: [],
       sourceType: activeInput,
       sourceName,
+      imageDataUrl,
     });
 
     navigate("/processing");
   }, [activeInput, selectedFile, url, textContent, setContentData, navigate]);
+
 
   const handleFileDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -209,11 +238,13 @@ const Homepage = () => {
           <div className="mt-6 flex justify-end">
             <Button
               onClick={handleSubmit}
+              disabled={extracting}
               className="gap-2 bg-mode px-8 py-3 text-mode-foreground shadow-lg transition-all hover:opacity-90"
               size="lg"
             >
-              Analyze Content
-              <ArrowRight className="h-4 w-4" />
+              {extracting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {extracting ? "Reading file..." : "Analyze Content"}
+              {!extracting && <ArrowRight className="h-4 w-4" />}
             </Button>
           </div>
         </div>
