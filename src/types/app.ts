@@ -15,6 +15,8 @@ export interface ContentData {
   keyPoints: KeyPoint[];
   sourceType: InputMethod;
   sourceName: string;
+  /** Optional base64 data URL for image inputs (multimodal). */
+  imageDataUrl?: string;
 }
 
 export type VisualizationType =
