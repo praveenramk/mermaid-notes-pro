@@ -238,11 +238,13 @@ const Homepage = () => {
           <div className="mt-6 flex justify-end">
             <Button
               onClick={handleSubmit}
+              disabled={extracting}
               className="gap-2 bg-mode px-8 py-3 text-mode-foreground shadow-lg transition-all hover:opacity-90"
               size="lg"
             >
-              Analyze Content
-              <ArrowRight className="h-4 w-4" />
+              {extracting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {extracting ? "Reading file..." : "Analyze Content"}
+              {!extracting && <ArrowRight className="h-4 w-4" />}
             </Button>
           </div>
         </div>
